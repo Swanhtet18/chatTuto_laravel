@@ -15,14 +15,22 @@ class ChatList extends Component
     public $name;
     public $selectedConversation;
 
-    protected $listeners = ['chatUserSelected'];
+    protected $listeners = ['chatUserSelected', 'refresh' => '$refresh', 'resetComponent'];
 
+
+    public function resetComponent()
+    {
+        $this->selectedConversation = null;
+        $this->receiverInstance = null;
+    }
 
     public function chatUserSelected(Conversation $conversation, $receiverId)
     {
-        dd($conversation, $receiverId);
+
         $this->selectedConversation = $conversation;
         $receiverInstance = User::find($receiverId);
+        $this->emitTo('chat.chatbox', 'loadConversation', $this->selectedConversation, $receiverInstance);
+        $this->emitTo('chat.send-message', 'updateSendMessage', $this->selectedConversation, $receiverInstance);
     }
 
 
@@ -44,7 +52,8 @@ class ChatList extends Component
     public function mount()
     {
         $this->auth_id = \auth()->id();
-        $this->conversations = Conversation::where('sender_id', $this->auth_id)->orWhere('receiver_id', $this->auth_id)->orderBy('last_time_message', 'DESC')->get();
+        $this->conversations = Conversation::where('sender_id', $this->auth_id)
+            ->orWhere('receiver_id', $this->auth_id)->orderBy('last_time_message', 'DESC')->get();
     }
     public function render()
     {
